@@ -29,16 +29,16 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from cluster_analysis.cluster_analysis import main
-from cluster_analysis.mstx_parser import MstxClusterParser
-from cluster_analysis.parser import (
+from rl_insight.main import main
+from rl_insight.parser import MstxClusterParser
+from rl_insight.parser import (
     CLUSTER_PARSER_REGISTRY,
     BaseClusterParser,
     get_cluster_parser_cls,
     register_cluster_parser,
 )
-from cluster_analysis.schema import Constant, DataMap, EventRow
-from cluster_analysis.visualizer import (
+from rl_insight.utils.schema import Constant, DataMap, EventRow
+from rl_insight.visualizer.visualizer import (
     CLUSTER_VISUALIZER_REGISTRY,
     build_traces,
     build_y_mappings,
@@ -594,7 +594,7 @@ class TestBaseClusterParser:
         )
 
         with patch("concurrent.futures.ProcessPoolExecutor"):
-            df = parser.parse()
+            df = parser.run()
 
         assert df is not None
         assert len(df) >= 1
@@ -839,8 +839,8 @@ class TestVisualizerFunctions:
         # Each trace should be a Plotly Bar object
         assert all(hasattr(trace, "base") for trace in traces)
 
-    @patch("cluster_analysis.visualizer.go.Figure")
-    @patch("cluster_analysis.visualizer.save_html")
+    @patch("rl_insight.visualizer.visualizer.go.Figure")
+    @patch("rl_insight.visualizer.visualizer.save_html")
     def test_generate_rl_timeline(
         self, mock_save_html, mock_figure, sample_event_dataframe
     ):
@@ -849,7 +849,7 @@ class TestVisualizerFunctions:
         mock_figure.return_value = mock_fig
 
         with patch(
-            "cluster_analysis.visualizer.merge_short_events",
+            "rl_insight.visualizer.visualizer.merge_short_events",
             side_effect=lambda df, threshold_ms=10.0: df,
         ):
             result = generate_rl_timeline(sample_event_dataframe, "/tmp/output")
@@ -920,7 +920,7 @@ class TestIntegration:
         )
 
         with patch("concurrent.futures.ProcessPoolExecutor"):
-            df = parser.parse()
+            df = parser.run()
 
         assert df is not None
         assert len(df) >= 1
@@ -928,13 +928,13 @@ class TestIntegration:
         # Visualize data
         output_dir = str(tmp_path / "output")
 
-        with patch("cluster_analysis.visualizer.go.Figure") as mock_figure:
+        with patch("rl_insight.visualizer.visualizer.go.Figure") as mock_figure:
             mock_fig = MagicMock()
             mock_figure.return_value = mock_fig
 
-            with patch("cluster_analysis.visualizer.save_html"):
+            with patch("rl_insight.visualizer.visualizer.save_html"):
                 with patch(
-                    "cluster_analysis.visualizer.merge_short_events",
+                    "rl_insight.visualizer.visualizer.merge_short_events",
                     side_effect=lambda frame, threshold_ms=10.0: frame,
                 ):
                     generate_rl_timeline(df, output_dir)
@@ -944,18 +944,18 @@ class TestIntegration:
 
     @patch(
         "sys.argv",
-        ["cluster_analysis.py", "--input-path", "/tmp", "--profiler-type", "mstx"],
+        ["main.py", "--input-path", "/tmp", "--profiler-type", "mstx"],
     )
-    @patch("cluster_analysis.cluster_analysis.get_cluster_parser_cls")
-    @patch("cluster_analysis.cluster_analysis.get_cluster_visualizer_fn")
+    @patch("rl_insight.pipeline.offline_insight_pipeline.get_cluster_parser_cls")
+    @patch("rl_insight.pipeline.offline_insight_pipeline.RLTimelineVisualizer")
     def test_main_function(
-        self, mock_get_visualizer, mock_get_parser, mock_mstx_profiler_structure
+        self, mock_visualizer_cls, mock_get_parser, mock_mstx_profiler_structure
     ):
         """Test main CLI entry point."""
         # Mock parser
         mock_parser = MagicMock()
         mock_parser_instance = MagicMock()
-        mock_parser_instance.parse.return_value = pd.DataFrame(
+        mock_parser_instance.run.return_value = pd.DataFrame(
             [
                 {
                     "role": "test",
@@ -968,20 +968,22 @@ class TestIntegration:
                 }
             ]
         )
+        mock_parser_instance.get_output_type.return_value = pd.DataFrame
+        mock_parser_instance.get_input_type.return_value = None
         mock_parser.return_value = mock_parser_instance
         mock_get_parser.return_value = mock_parser
 
         # Mock visualizer
-        mock_visualizer = MagicMock()
-        mock_get_visualizer.return_value = mock_visualizer
+        mock_visualizer_instance = MagicMock()
+        mock_visualizer_instance.get_input_type.return_value = pd.DataFrame
+        mock_visualizer_cls.return_value = mock_visualizer_instance
 
         # Run main
         main()
 
         # Verify parser was called
         mock_get_parser.assert_called_with("mstx")
-        mock_parser_instance.parse.assert_called_once()
+        mock_parser_instance.run.assert_called_once()
 
         # Verify visualizer was called
-        mock_get_visualizer.assert_called_with("html")
-        mock_visualizer.assert_called_once()
+        mock_visualizer_instance.run.assert_called_once()

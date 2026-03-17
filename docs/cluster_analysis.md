@@ -1,8 +1,8 @@
-# Cluster Analysis - RL Timeline 可视化工具
+# RL-Insight - RL Timeline 可视化工具
 
 ## 一、简介
 
-Cluster Analysis 是一个强化学习性能数据快速分析的可视化工具，基于 VeRL 框架采集的 profiling 数据进行解析，生成强化学习各阶段的 Timeline 图表。
+RL-Insight 是一个强化学习性能数据快速分析的可视化工具，基于 VeRL 框架采集的 profiling 数据进行解析，生成强化学习各阶段的 Timeline 图表。
 
 ### 主要功能
 
@@ -37,10 +37,16 @@ pip install pandas plotly numpy
 #### MSTX 使用示例
 
 ```bash
-python -m cluster_analysis.cluster_analysis \
+python -m rl_insight.main \
    --input-path <profiling_data_path> \
    --profiler-type mstx \
    --output-path <output_path>
+```
+
+或修改并直接使用examples/mstx_exec.sh脚本:
+
+```bash
+bash examples/mstx_exec.sh
 ```
 
 #### Torch Profiler 解析示例
@@ -48,10 +54,16 @@ python -m cluster_analysis.cluster_analysis \
 从最新版本开始，工具支持解析 PyTorch Profiler 采集的性能数据（`torch` 类型）。
 
 ```bash
-python -m cluster_analysis.cluster_analysis \
+python -m rl_insight.main \
     --input-path <torch_profiling_data_path> \
     --profiler-type torch \
     --output-path <output_path>
+```
+
+或修改并直接使用examples/torch_profiler_exec.sh脚本:
+
+```bash
+bash examples/torch_profiler_exec.sh
 ```
 
 ## 三、命令行参数
