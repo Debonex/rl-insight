@@ -15,7 +15,7 @@
 from rl_insight.parser import get_cluster_parser_cls
 from rl_insight.utils.schema import Constant
 from rl_insight.visualizer.visualizer import RLTimelineVisualizer
-from data.base import BaseData
+from rl_insight.data.base import BaseData
 
 
 class OfflineInsightPipeline:

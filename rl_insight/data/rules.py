@@ -14,7 +14,7 @@
 
 from typing import Optional
 
-from data.base import ValidationRule
+from rl_insight.data.base import ValidationRule
 
 
 class PathExistsRule(ValidationRule):
