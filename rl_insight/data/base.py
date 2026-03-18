@@ -15,97 +15,65 @@
 """Base data definitions for RL-Insight."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import List, Optional
+from rl_insight.data.enums import DataEnum
 
 
 class DataValidationError(Exception):
     """Exception raised when data validation fails."""
 
-    def __init__(self, message: str, errors: Optional[List[str]] = None):
+    def __init__(self, message: str, errors: Optional[List[List[str]]] = None):
         super().__init__(message)
         self.errors = errors or []
 
     def __str__(self) -> str:
         if self.errors:
-            return f"{super().__str__()}\n  - " + "\n  - ".join(self.errors)
+            return f"{super().__str__()}\n  - " + "\n  - ".join(
+                ["\n    ".join(err) for err in self.errors]
+            )
         return super().__str__()
-
-
-@dataclass
-class ValidationResult:
-    """Validation result"""
-
-    is_valid: bool
-    errors: List[str] = field(default_factory=list)
-
-    def raise_if_invalid(self) -> None:
-        if not self.is_valid:
-            raise DataValidationError("Data validation failed", self.errors)
-
-    def __bool__(self) -> bool:
-        return self.is_valid
 
 
 class ValidationRule(ABC):
     """Validation rule base class"""
 
     @abstractmethod
-    def check(self, data: Any) -> bool:
+    def check(self, data: "BaseData") -> bool:
         pass
 
     @property
     @abstractmethod
-    def error_message(self) -> str:
+    def error_message(self) -> List[str]:
         pass
-
-
-class BaseValidator:
-    """Base validator class"""
-
-    def __init__(self):
-        self._rules: List[ValidationRule] = []
-
-    def add_rule(self, rule: ValidationRule) -> "BaseValidator":
-        """Add a validation rule"""
-        self._rules.append(rule)
-        return self
-
-    def validate(self, data: Any) -> ValidationResult:
-        """Validate the data against all rules and return a ValidationResult"""
-        errors = []
-
-        for rule in self._rules:
-            try:
-                if not rule.check(data):
-                    errors.append(rule.error_message)
-            except Exception as e:
-                errors.append(f"Validation rule execution failed: {e}")
-
-        return ValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-        )
 
 
 class BaseData:
     """Base data class for RL-Insight."""
 
-    def __init__(self, validator: Optional[BaseValidator] = None):
-        self._validator = validator
+    _rules: List[ValidationRule] = []
+    """Validation rules for this data class. Should be set by subclasses."""
+    _data_type: DataEnum
+    """Data type for this data class. Should be set by subclasses."""
 
-    def check(self) -> ValidationResult:
+    @classmethod
+    def check(cls, data_type: DataEnum | list[DataEnum], data: "BaseData") -> bool:
         """Validate the data"""
-        return (
-            self._validator.validate(self)
-            if self._validator
-            else ValidationResult(is_valid=True)
-        )
 
-    def check_or_raise(self) -> None:
-        """Raise an exception if validation fails"""
-        self.check().raise_if_invalid()
+        if isinstance(data_type, list):
+            if cls._data_type not in data_type:
+                raise DataValidationError(
+                    f"Data type mismatch: expected one of {data_type}, got {cls._data_type}"
+                )
+        else:
+            if data_type != cls._data_type:
+                raise DataValidationError(
+                    f"Data type mismatch: expected {cls._data_type}, got {data_type}"
+                )
 
-    @property
-    def is_valid(self) -> bool:
-        return self.check().is_valid
+        errors: List[List[str]] = []
+        for rule in cls._rules:
+            if not rule.check(data):
+                errors.append(rule.error_message)
+        if errors:
+            raise DataValidationError("Data validation failed", errors)
+        return True

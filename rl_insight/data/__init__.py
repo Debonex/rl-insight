@@ -17,16 +17,15 @@
 from .base import (
     BaseData,
     DataValidationError,
-    ValidationResult,
     ValidationRule,
 )
-
 from .rules import PathExistsRule
+from .enums import DataEnum
 
 __all__ = [
     "BaseData",
     "DataValidationError",
-    "ValidationResult",
     "ValidationRule",
     "PathExistsRule",
+    "DataEnum",
 ]

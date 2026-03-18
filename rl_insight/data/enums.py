@@ -11,24 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from typing import List
-
-from rl_insight.data.base import ValidationRule
+from enum import Enum
 
 
-class PathExistsRule(ValidationRule):
-    _error_message: List[str] = []
+class DataEnum(Enum):
+    """Enum for data types in RL-Insight."""
 
-    def check(self, data) -> bool:
-        if not hasattr(data, "path"):
-            self._error_message = ["Data object does not have 'path' attribute"]
-            return False
-        if not data.path.exists():
-            self._error_message = [f"Source path does not exist: {data.path}"]
-            return False
-        return True
-
-    @property
-    def error_message(self) -> List[str]:
-        return self._error_message
+    MULTI_JSON = "multi_json"
+    VERL_LOG = "verl_log"
+    SUMMARY_EVENT = "summary_event"
+    UNKNOWN = "unknown"
