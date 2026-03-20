@@ -17,7 +17,10 @@ from enum import Enum
 class DataEnum(Enum):
     """Enum for data types in RL-Insight."""
 
+    # input data type of parser
     MULTI_JSON = "multi_json"
     VERL_LOG = "verl_log"
+    # output data type of parser, input data type of visualizer
     SUMMARY_EVENT = "summary_event"
+    # other data type
     UNKNOWN = "unknown"

@@ -15,8 +15,11 @@
 """Base data definitions for RL-Insight."""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from collections.abc import Callable
+from typing import List, Optional, Type
 from rl_insight.data.enums import DataEnum
+
+REGISTERED_DATA_ENUM: dict["DataEnum", type["BaseData"]] = {}
 
 
 class DataValidationError(Exception):
@@ -47,7 +50,7 @@ class ValidationRule(ABC):
         pass
 
 
-class BaseData:
+class BaseData(ABC):
     """Base data class for RL-Insight."""
 
     _rules: List[ValidationRule] = []
@@ -77,3 +80,33 @@ class BaseData:
         if errors:
             raise DataValidationError("Data validation failed", errors)
         return True
+
+    @property
+    def data_type(self) -> DataEnum:
+        return self._data_type
+
+    @abstractmethod
+    def load(self):
+        """Load the data from source. Should be implemented by subclasses."""
+        pass
+
+
+def register_data_cls() -> Callable[[type[BaseData]], type[BaseData]]:
+    def decorator(cls: type[BaseData]) -> type[BaseData]:
+        enum = cls._data_type
+        if enum in REGISTERED_DATA_ENUM:
+            raise ValueError(
+                f"Data enum {enum} already registered for {REGISTERED_DATA_ENUM[enum]}"
+            )
+        REGISTERED_DATA_ENUM[enum] = cls
+        return cls
+
+    return decorator
+
+
+def get_data_cls(data_enum: DataEnum) -> Type[BaseData]:
+    if data_enum not in REGISTERED_DATA_ENUM:
+        raise ValueError(
+            f"Unsupported data enum: {data_enum}. Supported enums are: {list(REGISTERED_DATA_ENUM.keys())}"
+        )
+    return REGISTERED_DATA_ENUM[data_enum]

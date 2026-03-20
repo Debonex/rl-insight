@@ -19,11 +19,13 @@ from .base import (
     DataValidationError,
     ValidationRule,
 )
+from .multi_json import MultiJsonData
 from .rules import PathExistsRule
 from .enums import DataEnum
 
 __all__ = [
     "BaseData",
+    "MultiJsonData",
     "DataValidationError",
     "ValidationRule",
     "PathExistsRule",

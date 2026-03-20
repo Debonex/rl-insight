@@ -19,11 +19,12 @@ from pathlib import Path
 
 import pytest
 
-from rl_insight.data.base import BaseData
+from rl_insight.data.base import BaseData, register_data_cls, get_data_cls
 from rl_insight.data.enums import DataEnum
 from rl_insight.data.rules import PathExistsRule
 
 
+@register_data_cls()
 @dataclass
 class SampleData(BaseData):
     path: Path
@@ -56,6 +57,10 @@ def sample_data(tmp_path):
 
 
 class TestSampleData:
+    def test_registration(self):
+        data_cls = get_data_cls(DataEnum.UNKNOWN)
+        assert data_cls is SampleData
+
     def test_path_not_exists(self, tmp_path=Path("/tmp")):
         data = SampleData(path=tmp_path / "non_existent_file.txt")
         try:
